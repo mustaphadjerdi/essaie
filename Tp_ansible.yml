@@ -1,0 +1,86 @@
+---
+- name: Tp ansible group 2
+  hosts: frontend
+  become: yes  # Pour exécuter en tant qu'administrateur (root)
+ ###############OPENJDK11######################################################
+  tasks:
+    - name: Installation d'OpenJDK 11
+      package:
+        name: java-11-amazon-corretto-devel
+        state: present
+
+    - name: Définir la variable JAVA_HOME
+      shell: export JAVA_HOME="/usr/lib/jvm/java-11-amazon-corretto.x86_64/bin/"
+ ###################TERRAFORM#################################################
+  
+    - name: Télécharger Terraform
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/0.14.10/terraform_0.14.10_linux_amd64.zip"  
+        dest: /tmp/terraform_0.14.10_linux_amd64.zip
+
+    - name: Décompresser Terraform
+      unarchive:
+        src: /tmp/terraform_0.14.10_linux_amd64.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: '0755'
+
+    - name: Vérifier l'installation de Terraform
+      command: terraform --version
+      register: terraform_version
+      changed_when: false  # Ne pas marquer comme modifié
+
+    - name: Afficher la version de Terraform
+      debug:
+        var: terraform_version.stdout_lines
+########################TOMCAT#############################################
+    - name: add group "tomcat"
+      group: name=tomcat
+
+    - name: add user "tomcat"
+      user: name=tomcat group=tomcat createhome=yes
+
+    - name: Download Tomcat
+      get_url:
+        url: https://archive.apache.org/dist/tomcat/tomcat-10/v10.0.23/bin/apache-tomcat-10.0.23.tar.gz
+        dest: /tmp/apache-tomcat-10.0.23.tar.gz
+
+    - name: Extract Tomcat
+      ansible.builtin.unarchive:
+        src: /tmp/apache-tomcat-10.0.23.tar.gz
+        dest: /opt/tomcat2
+        remote_src: yes
+
+    - name: change owenership of tomcat 
+      file: path=/opt/tomcat2/apache-tomcat-10.0.23/ owner=tomcat group=tomcat state=directory recurse=yes
+
+    - name: Copier context.xml
+      copy:
+        src: /home/adm1/Tp_ansible/context.xml  
+        dest: /opt/tomcat2/apache-tomcat-10.0.23/webapps/manager/META-INF/context.xml  # Chemin de destination sur la machine cible
+
+    - name: Copier contexthosts.xml
+      copy:
+        src: /home/adm1/Tp_ansible/contexthosts.xml
+        dest: /opt/tomcat2/apache-tomcat-10.0.23/webapps/host-manager/META-INF/context.xml  
+
+    - name: copier tomcat-users.xml
+      copy:
+        src: /home/adm1/Tp_ansible/tomcat-users.xml
+        dest: /opt/tomcat2/apache-tomcat-10.0.23/conf/tomcat-users.xml  
+
+    - name: Copier serveur de tomcat2
+      copy:
+        src: /home/adm1/Tp_ansible/tomcat2.service
+        dest: /etc/systemd/system/  
+
+    - name: Exécuter systemctl daemon-reload
+      command: systemctl daemon-reload
+
+    - name: start Tomcat
+      service:
+        name: tomcat2
+        state: started
+        enabled: yes
+
+...
