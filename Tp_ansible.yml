@@ -1,6 +1,6 @@
 ---
 - name: Installer Vim
-  hosts: remot
+  hosts: remote
   become: yes
 
   tasks:
