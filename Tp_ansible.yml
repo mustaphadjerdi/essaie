@@ -1,6 +1,6 @@
 ---
 - name: Tp ansible group 2
-  hosts: frontend
+  hosts: remote
   become: yes  # Pour exécuter en tant qu'administrateur (root)
  ###############OPENJDK11######################################################
   tasks:
